@@ -849,6 +849,7 @@ tcurl_request_destructor(struct tcurl_request *tcurl_req)
 
 static struct tcurl_request *
 tcurl_request_create(TALLOC_CTX *mem_ctx,
+                     enum tcurl_http_method method,
                      const char *socket_path,
                      const char *url,
                      const char **headers,
@@ -922,8 +923,13 @@ tcurl_request_create(TALLOC_CTX *mem_ctx,
     if (body != NULL) {
         /* Curl will tell the underlying protocol about incoming data length.
          * In case of HTTP it will add a sane Content-Length header. */
-        ret = tcurl_set_option(tcurl_req, CURLOPT_INFILESIZE_LARGE,
-                               (curl_off_t)sss_iobuf_get_size(body));
+        if (method == TCURL_HTTP_POST) {
+            ret = tcurl_set_option(tcurl_req, CURLOPT_POSTFIELDSIZE_LARGE,
+                                   (curl_off_t)sss_iobuf_get_size(body));
+        } else {
+            ret = tcurl_set_option(tcurl_req, CURLOPT_INFILESIZE_LARGE,
+                                   (curl_off_t)sss_iobuf_get_size(body));            
+        }
         if (ret != EOK) {
             goto done;
         }
@@ -950,7 +956,8 @@ struct tcurl_request *tcurl_http(TALLOC_CTX *mem_ctx,
     struct tcurl_request *tcurl_req;
     errno_t ret;
 
-    tcurl_req = tcurl_request_create(mem_ctx, socket_path, url, headers, body);
+    tcurl_req = tcurl_request_create(mem_ctx, method, socket_path,
+                                     url, headers, body);
     if (tcurl_req == NULL) {
         return NULL;
     }
@@ -973,7 +980,7 @@ struct tcurl_request *tcurl_http(TALLOC_CTX *mem_ctx,
         }
         break;
     case TCURL_HTTP_POST:
-        ret = tcurl_set_option(tcurl_req, CURLOPT_CUSTOMREQUEST, "POST");
+        ret = tcurl_set_option(tcurl_req, CURLOPT_POST, 1L);
         if (ret != EOK) {
             goto done;
         }
