@@ -368,6 +368,7 @@ sssdlib_LTLIBRARIES = \
     libsss_ldap.la \
     libsss_krb5.la \
     libsss_proxy.la \
+    libsss_github.la \
     libsss_simple.la \
     $(NULL)
 
@@ -1795,6 +1796,7 @@ sssd_secrets_LDADD = \
     libsss_sbus.la \
     libsss_secrets.la \
     $(NULL)
+sssd_secrets_CFLAGS = $(AM_CFLAGS)
 endif
 
 if BUILD_KCM
@@ -4282,6 +4284,14 @@ libsss_proxy_la_LIBADD = \
 libsss_proxy_la_LDFLAGS = \
     -avoid-version \
     -module
+
+libsss_github_la_SOURCES = \
+    src/providers/github/github_init.c \
+    src/util/sss_sockets.c \
+    src/util/sss_iobuf.c \
+    src/util/tev_curl.c
+libsss_github_la_LIBADD = $(JANSSON_LIBS) $(CURL_LIBS)
+libsss_github_la_LDFLAGS = -avoid-version -module
 
 libsss_files_la_SOURCES = \
     src/providers/files/files_init.c \

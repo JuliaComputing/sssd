@@ -170,6 +170,7 @@ SSSD_RUNSTATEDIR
 WITH_SECRETS
 WITH_SECRETS_DB_PATH
 WITH_KCM
+WITH_GITHUB
 
 m4_include([src/external/pkg.m4])
 m4_include([src/external/libpopt.m4])
@@ -212,6 +213,9 @@ m4_include([src/external/test_ca.m4])
 
 if test x$with_secrets = xyes; then
     m4_include([src/external/libhttp_parser.m4])
+fi
+
+if test x$with_secrets = xyes -o x$with_github = xyes; then
     m4_include([src/external/libcurl.m4])
 fi
 
@@ -219,7 +223,7 @@ if test x$with_kcm = xyes; then
     m4_include([src/external/libuuid.m4])
 fi
 
-if test x$with_kcm = xyes -o x$with_secrets = xyes; then
+if test x$with_kcm = xyes -o x$with_secrets = xyes -o x$with_github = xyes; then
     BUILD_WITH_LIBSECRET=1
     AC_DEFINE_UNQUOTED(BUILD_WITH_LIBSECRET, 1, [libsecret will be built])
     m4_include([src/external/libjansson.m4])

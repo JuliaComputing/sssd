@@ -912,6 +912,22 @@ AC_DEFUN([WITH_KCM],
     AM_CONDITIONAL([BUILD_KCM], [test x"$with_kcm" = xyes])
   ])
 
+AC_DEFUN([WITH_GITHUB],
+[ AC_ARG_WITH([github],
+              [AC_HELP_STRING([--with-github],
+                              [Whether to build with GitHub server support [yes]]
+                             )
+              ],
+              [with_github=$withval],
+              with_github=yes
+             )
+
+  if test x"$with_github" = xyes; then
+      AC_DEFINE(BUILD_GITUB, 1, [whether to build with GitHub id provider support])
+  fi
+  AM_CONDITIONAL([BUILD_GITUB], [test x"$with_github" = xyes])
+])
+
 AC_DEFUN([WITH_SECRETS_DB_PATH],
   [ AC_ARG_WITH([secrets-db-path],
                 [AC_HELP_STRING([--with-secrets-db-path=PATH],
