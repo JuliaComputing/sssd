@@ -314,7 +314,6 @@ static void github_org_query_done(struct tevent_req *subreq) {
     struct sss_iobuf *response;
     struct tevent_req *req;
     struct github_req_state *state;
-    struct sysdb_attrs *attrs = NULL;
     int http_code = 0;
     errno_t ret;
     req = tevent_req_callback_data(subreq, struct tevent_req);
@@ -327,7 +326,6 @@ static void github_org_query_done(struct tevent_req *subreq) {
     if (http_code == 200) {
         json_t *root = NULL;
         json_error_t error;
-        int ok;
 
         DEBUG(SSSDBG_TRACE_LIBS, "Response was :%s",
               sss_iobuf_get_data(response));
@@ -442,10 +440,13 @@ static void github_user_query_done(struct tevent_req *subreq) {
         DEBUG(SSSDBG_OP_FAILURE, "GitHub responded with rate limit %s\n",
               sss_iobuf_get_data(response));
         ret = EBUSY;
+    } else if (http_code == 404) {
+        // It is important to return ENOENT here to make sure the requested
+        // user ends up in the negative cache.
+        ret = ENOENT;
     } else if (http_code == 200) {
         json_t *root = NULL;
         json_error_t error;
-        int ok;
 
         root = json_loadb((const char *)sss_iobuf_get_data(response),
                           sss_iobuf_get_len(response), 0, &error);
@@ -638,8 +639,7 @@ struct tevent_req *github_account_info_handler_send(
 immediate:
     dp_reply_std_set(&state->reply, DP_ERR_DECIDE, ret, NULL);
     tevent_req_error(req, EINVAL);
-    tevent_req_post(req, params->ev);
-    return req;
+    return tevent_req_post(req, params->ev);
 }
 
 errno_t github_account_info_handler_recv(TALLOC_CTX *mem_ctx,
