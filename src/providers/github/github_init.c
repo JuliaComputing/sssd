@@ -556,6 +556,14 @@ static int is_valid_github_username(char *username) {
     return true;
 }
 
+static int is_all_numeric_username(char *username) {
+    while (*username != '\0') {
+        if (!isdigit(*username++))
+            return false;
+    }
+    return true;
+}
+
 struct tevent_req *github_account_info_handler_send(
     TALLOC_CTX *mem_ctx, struct github_context *ctx, struct dp_id_data *data,
     struct dp_req_params *params) {
@@ -588,6 +596,20 @@ struct tevent_req *github_account_info_handler_send(
         if (!is_valid_github_username(username)) {
             DEBUG(SSSDBG_FATAL_FAILURE,
                   "`%s` is not a valid github user name\n", username);
+            ret = EINVAL;
+            goto immediate;
+        }
+
+        // By default, we disallow importing all numeric usernames,
+        // because several popular tools will first try to look up
+        // a username before interpreting it as a UID and we want to avoid
+        // such confusion.
+        // TODO: We could map these as #xxxx, since `#` is an invalid character
+        // in github usernames and this would avoid the confusion. Also,
+        // we should make this configurable.
+        if (is_all_numeric_username(username)) {
+            DEBUG(SSSDBG_FATAL_FAILURE,
+                  "`%s` is all numeric and thus disallowed for security\n", username);
             ret = EINVAL;
             goto immediate;
         }
