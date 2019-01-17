@@ -1,52 +1,53 @@
-# SSSD - System Security Services Daemon
+# GitHub provider for SSSD
 
-## Introduction
-SSSD provides a set of daemons to manage access to remote directories and
-authentication mechanisms such as LDAP, Kerberos or FreeIPA. It provides
-an NSS and PAM interface toward the system and a pluggable backend system
-to connect to multiple different account sources.
+This fork of sssd contains an sssd id provider backed by GitHub accounts.
+It queries the GitHub API to on-demand discover available users and
+groups and make them available for authentication through SSSD. It
+additionally collects SSH public keys for any mapped user, thus
+allowing users to login with any key added to github if OpenSSH is
+set up to accept SSH keys from SSSD (see `sss_ssh_authorizedkeys`)
 
-More information about SSSD can be found on its project page -
-https://pagure.io/SSSD/sssd/
+## Building
 
-## Downloading SSSD
-SSSD is shipped as a binary package by most Linux distributions. If you
-want to obtain the latest source files, please navigate to the
-[Releases folder on pagure](https://releases.pagure.org/SSSD/sssd/)
+Clone this repository and configure/build with
+```
+./configure --with-github --without-samba --without-python2-bindings --without-python3-bindings
+make
+```
+This will create `.libs/libsss_github.so`, which you need to copy to `/usr/lib/x86_64-linux-gnu/sssd/` (on Ubuntu,
+paths for other systems may vary).
 
-## Releases
-SSSD maintains two release streams - stable and LTM. Releases designated as
-LTM are long-term maintenance releases and will see bugfixes and security
-patches for a longer time than other releases.
+## Configuration
 
-The list of all releases is maintained together with [SSSD documentation](https://docs.pagure.org/SSSD.sssd/users/releases.html)
+Here is an exmaple configuration:
+```
+[nss]
+filter_groups = root,adm,sudo,shadow,staff,admin
+filter_users = root
+reconnection_retries = 3
 
-## Building and installation from source
-Please see the [our developer documentation](https://docs.pagure.org/SSSD.sssd/developers/)
+[sssd]
+config_file_version = 2
+reconnection_retries = 3
+sbus_timeout = 30
+services = nss, pam, ssh
+domains = users.github.com
 
-## Documentation
-The most up-to-date documentation can be found at https://docs.pagure.org/SSSD.sssd/
+[domain/users.github.com]
+enumerate = false
+cache_credentials = true
+case_sensitive = preserving
 
-Its source code is hosted at https://pagure.io/SSSD/docs
+id_provider = github
+github_key = <github_key>
 
-## Submitting bugs
-Please file an issue in the [SSSD pagure instance](https://pagure.io/SSSD/sssd/issues).
-Make sure to follow the [guide on reporting SSSD bugs](https://docs.pagure.org/SSSD.sssd/users/reporting_bugs.html)
+access_provider = simple
+simple_allow_groups = SSSD
+simple_allow_users = octocat
+```
 
-## Licensing
-Please see the file called COPYING.
-
-## Social networks
-We maintain our presence on [Twitter](https://twitter.com/SysSecSvcDaemon)
-and [Google plus](https://plus.google.com/114204339376082660377)
-
-## Contacts
-There are several ways to contact us:
-
-* the sssd-devel mailing list: [Development of the System Security Services Daemon](
-  https://lists.fedorahosted.org/archives/list/sssd-devel@lists.fedorahosted.org/)
-* the sssd-users mailing list: [End-user discussions about the System Security Services Daemon](
-  https://lists.fedorahosted.org/archives/list/sssd-users@lists.fedorahosted.org/)
-* the #sssd and #freeipa IRC channels on freenode:
-  * irc://irc.freenode.net/sssd
-  * irc://irc.freenode.net/freeipa
+This configuration allows connection by any member of the `SSSD` GitHub organization or
+the `octocat` user. The `<github_key>` should be set to a personal access token, and is
+generally needed only to avoid GitHub rate limits. However, if you want to allow members
+that have not set their membership to public, the personal access token will have to have
+`read:org` scope for any organization that the SSSD provider needs to inspect.
